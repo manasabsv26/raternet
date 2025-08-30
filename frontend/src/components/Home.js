@@ -37,7 +37,7 @@ const Home = (props) => {
     const token = localStorage.getItem('token');
     const [locations, setLocations] = useState([]);
     const [locationCoords, setLocationCoords] = useState([]);
-    const [selectedLocation, setSelectedLocation] = useState(null);
+    const [selectedLocation, setSelectedLocation] = useState("");
     const [reviews, setReviews] = useState([]);
     const [barData,setbarData] = React.useState([]);
     const [lineData,setlineData] = React.useState(null)
@@ -52,55 +52,51 @@ const Home = (props) => {
 
     const baseUrl = "http://localhost:7000"; 
 
+    // Reference Profile.js: fetch locations and set first location as default
+    const fetchLocationsDropdown = async (company_id) => {
+        try {
+            const response = await axios.get(`${baseUrl}/locations/options/${company_id}`);
+            const locs = response.data.data.locations;
+            setLocations(locs);
+            if (locs && locs.length > 0) {
+                const locationString = `${locs[0].address_line1}, ${locs[0].city}, ${locs[0].state}, ${locs[0].pincode}`;
+                setSelectedLocation(locationString);
+            } else {
+                setSelectedLocation("");
+            }
+        } catch (error) {
+            console.error("Error fetching locations:", error);
+        }
+    };
+    
+
+    // Only fetch coordinates for map, not for dropdown
     const setInitialLocation = async (userId) => {
         try {
-            // ✅ Fetch user's locations
             const response = await axios.get(`${baseUrl}/locations/options/${userId}`);
-            const locations = response.data.data.locations; 
-    
-            console.log("User locations:", locations); // Debugging
-    
-            if (locations.length === 0) {
-                return { lat: 19.076, lng: 72.8777 }; // Default to Mumbai if no locations found
+            const locs = response.data.data.locations;
+            if (!locs || locs.length === 0) {
+                setLocationCoords([defaultCenter]);
+                return [defaultCenter];
             }
-
-            if (locations.length > 0){
-                setLocations(locations)
-            }
-
-            if (locations.length > 0) {
-                setSelectedLocation(locations[0].address_line1+ ", "+ locations[0].city + ", " + locations[0].state + ", " + locations[0].pincode); 
-            }
-    
-            // ✅ Convert addresses to coordinates using Geocode API
-            console.log("Geocode object:", Geocode);
             Geocode.setApiKey(process.env.REACT_APP_API_URL);
             Geocode.setLanguage("en");
-            
-            const locationPromises = locations.map(async (location) => {
+            const locationPromises = locs.map(async (location) => {
                 const address = `${location.address_line1}, ${location.city}, ${location.state}, ${location.pincode}`;
                 try {
                     const geoResponse = await Geocode.fromAddress(address);
                     const { lat, lng } = geoResponse.results[0].geometry.location;
                     return { lat, lng };
                 } catch (error) {
-                    console.error("Error fetching coordinates for:", address, error);
-                    return null; // If error, return null (it will be filtered out later)
+                    return null;
                 }
             });
-    
             const coordinates = (await Promise.all(locationPromises)).filter(coord => coord !== null);
-
-            if(coordinates.length >0){
-                setLocationCoords(coordinates);
-            }
-            
-            console.log("Mapped coordinates:", coordinates); // Debugging
-    
-            return coordinates; // Return all locations as an array of { lat, lng }
+            setLocationCoords(coordinates);
+            return coordinates;
         } catch (error) {
-            console.error("Error fetching user locations:", error);
-            return [{ lat: 19.076, lng: 72.8777 }]; // Default to Mumbai
+            setLocationCoords([defaultCenter]);
+            return [defaultCenter];
         }
     };
     
@@ -167,13 +163,12 @@ const Home = (props) => {
     }
 
     useEffect(() => {
-        const fetchReviews = async () => {
+        const fetchReviews = async (locationStr) => {
             if (token) {
                 try {
                     const user = jwtDecode(token);
-                    const data = await getReviews(user.id, "Mumbai");
-                    setReviews(data); 
-                    
+                    const data = await getReviews(user.id, locationStr);
+                    setReviews(data);
                 } catch (error) {
                     console.error('Error fetching reviews:', error);
                 }
@@ -182,27 +177,40 @@ const Home = (props) => {
             }
         };
 
-        const fetchLocations = async () => {
-            if(token){
-                try{
-                    const user =jwtDecode(token);
-                    console.log("user:")
-                    console.log(user)
-                    const coords = await setInitialLocation(user.id);
-                    //setLocations(coords);
-
-                } catch (error){
+        const fetchAll = async () => {
+            if (token) {
+                try {
+                    const user = jwtDecode(token);
+                    await fetchLocationsDropdown(user.id);
+                    await setInitialLocation(user.id);
+                } catch (error) {
                     console.error('Error fetching locations');
                 }
             } else {
-                navigate('/login')
-            }  
+                navigate('/login');
+            }
         };
 
-        fetchReviews();
-        fetchLocations();
+        fetchAll();
     }, [token, navigate]);
 
+    // Fetch reviews when selectedLocation changes
+    useEffect(() => {
+        if (selectedLocation) {
+            const fetchReviewsForLocation = async () => {
+                if (token) {
+                    try {
+                        const user = jwtDecode(token);
+                        const data = await getReviews(user.id, selectedLocation);
+                        setReviews(data);
+                    } catch (error) {
+                        console.error('Error fetching reviews:', error);
+                    }
+                }
+            };
+            fetchReviewsForLocation();
+        }
+    }, [selectedLocation, token]);
     const displayData = () => {
         let averages = {
             overallRating: 0,
@@ -279,15 +287,12 @@ const Home = (props) => {
     
     const handleLocChange = (e)=>setSelectedLocation(e.target.value);
     const handleSearch = async ()=>{
-
         if (!selectedLocation) {
             console.log("No location selected!");
             return;
         }
-    
-        console.log("Searching for:", selectedLocation);  
-        let user = jwtDecode(token);
-        await getReviews(user.id, selectedLocation);
+        // This will trigger useEffect to fetch reviews for selectedLocation
+        setSelectedLocation(selectedLocation);
     }
 
     if(error){
@@ -317,12 +322,11 @@ const Home = (props) => {
                             <Select
                                 defaultValue=""
                                 value={selectedLocation || ""}
-                                onChange={(e) => setSelectedLocation(e.target.value)} // ✅ Store as a string
+                                onChange={(e) => setSelectedLocation(e.target.value)}
                                 label="Select Location"
                             >
                                 {locations && locations.length > 0 ? (
                                     locations.map((location, index) => {
-                                        // ✅ Ensure the location properties are valid
                                         const locationString = location.address_line1 && location.city && location.state && location.pincode
                                             ? `${location.address_line1}, ${location.city}, ${location.state}, ${location.pincode}`
                                             : "Invalid Location";

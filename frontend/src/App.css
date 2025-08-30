@@ -1,3 +1,11 @@
+/* Custom style for LOGOUT button */
+.logout-btn {
+  padding: 4px 12px;
+  margin: 0 8px;
+  font-size: 0.95rem;
+  border-radius: 4px;
+  min-width: unset;
+}
 .App {
   text-align: center;
 }

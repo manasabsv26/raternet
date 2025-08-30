@@ -144,7 +144,7 @@ const Navbar = ()=>{
                     </IconButton>
                     {loggedIn ? 
                     <div className={classes.sectionDesktop}>
-                        <Button variant="outlined" color="inherit" onClick={() => setLogout(true)}>Logout</Button>
+                        <Button variant="outlined" color="inherit" className="logout-btn" onClick={() => setLogout(true)}>Logout</Button>
                     </div> : 
                      <div className={classes.sectionDesktop}>
                         <Button variant="outlined" color="inherit" onClick={() => setSignUp(signUp=>!signUp)}>SignUp</Button>
@@ -162,17 +162,31 @@ const Navbar = ()=>{
                 <Toolbar variant='dense' />
                 <div className={classes.drawerContainer}>
                     <List>
-                        {loggedIn ?  <ListItem button key={'Profile'} onClick={()=>{
-                            navigate('/profile')
+                        {loggedIn ?  <ListItem button key={'Home'} onClick={() => {
+                            navigate('/');
+                            setOpen(false);
+                        }}>
+                            <ListItemIcon> <AccountCircle/></ListItemIcon>
+                            <ListItemText primary={'Home'} />
+                        </ListItem>: null}
+                        {loggedIn ?  <ListItem button key={'Profile'} onClick={() => {
+                            navigate('/profile');
+                            setOpen(false);
                         }}>
                             <ListItemIcon> <AccountCircle/></ListItemIcon>
                             <ListItemText primary={'Profile'} />
                         </ListItem>: null}
-                        {loggedIn ?  <ListItem button key={'Plans'} onClick={() => navigate('/plans')}>
+                        {loggedIn ?  <ListItem button key={'Plans'} onClick={() => {
+                            navigate('/plans');
+                            setOpen(false);
+                        }}>
                             <ListItemIcon><FeedbackIcon/></ListItemIcon>
                             <ListItemText primary={'Plans'}/>
                         </ListItem>: null}
-                        <ListItem button key={'About'} onClick={() => navigate('/about')}>
+                        <ListItem button key={'About'} onClick={() => {
+                            navigate('/about');
+                            setOpen(false);
+                        }}>
                             <ListItemIcon><InfoIcon/></ListItemIcon>
                             <ListItemText primary={'About'} />
                         </ListItem>
