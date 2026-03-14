@@ -99,23 +99,71 @@ const Home = (props) => {
             return [defaultCenter];
         }
     };
+
+    const normalizeLocationText = (value) => {
+        return (value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    };
+
+    const getSelectedLocationParts = () => {
+        const parts = (selectedLocation || '').split(',').map(p => p.trim());
+        return {
+            address: parts[0] || '',
+            city: parts[1] || '',
+            state: parts[2] || '',
+            pincode: parts[3] || ''
+        };
+    };
+
+    const matchesSelectedLocation = (review) => {
+        if (!selectedLocation) return true;
+
+        const selected = getSelectedLocationParts();
+        const reviewLocality = normalizeLocationText(review.locality);
+        const selectedLocality = normalizeLocationText(selectedLocation);
+
+        if (reviewLocality === selectedLocality) return true;
+
+        const reviewCity = normalizeLocationText(review.city);
+        const selectedCity = normalizeLocationText(selected.city);
+        const selectedState = normalizeLocationText(selected.state);
+        const selectedPin = normalizeLocationText(selected.pincode);
+        const selectedAddress = normalizeLocationText(selected.address);
+
+        const cityMatch = selectedCity ? reviewCity === selectedCity : false;
+        const stateMatch = selectedState ? reviewLocality.includes(selectedState) : false;
+        const pinMatch = selectedPin ? reviewLocality.includes(selectedPin) : false;
+        const addressMatch = selectedAddress ? reviewLocality.includes(selectedAddress) : false;
+
+        // Backward-compatible match for legacy locality strings with partial fields.
+        return (cityMatch && (stateMatch || pinMatch || addressMatch)) || (stateMatch && pinMatch) || addressMatch;
+    };
+
+    const getFilteredReviews = (list) => {
+        const source = Array.isArray(list) ? list : [];
+        return source.filter(matchesSelectedLocation);
+    };
     
     const renderReviews = () => {
         if (!reviews || reviews.length === 0) {
             return <Typography variant="h6" color="textSecondary">No reviews available.</Typography>;
         }
+
+        const filtered = getFilteredReviews(reviews);
+
+        if (filtered.length === 0) {
+            return <Typography variant="h6" color="textSecondary">No reviews for this location.</Typography>;
+        }
     
         return (
             <React.Fragment>
-                {reviews.filter(review => review.locality === selectedLocation).map(review => (
+                {filtered.map(review => (
                     <Paper key={review._id} elevation={2} style={{ margin: 10, padding: 10 }}>
-                        <Typography variant='h5'>{review.isp_Name}</Typography>
-                        <Typography variant='h5' color='textSecondary'>{review.locality}</Typography>
+                        <Typography variant='h6'>{review.feedback}</Typography>
+                        <Typography variant='body2' color='textSecondary'>{review.locality}</Typography>
                         <Divider fullWidth />
-                        <Typography variant="h6">{review.feedback}</Typography>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Rating name="read-only" value={review.overallRating} readOnly />
-                            <Button variant='contained' color='primary'>Know More</Button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+                            <Rating name="read-only" value={Number(review.overall_rating)} readOnly />
+                            <Typography variant='body2' color='textSecondary'>{review.type}</Typography>
                         </div>
                     </Paper>
                 ))}
@@ -151,40 +199,31 @@ const Home = (props) => {
     };
     
    
-    const getReviews = async (asn,location)=>{
-        try{
-          const reviews = await fetchReviews(asn,location);
-          displayData(reviews);
-          setLoading(false)
-        } catch(e){
-          setError(e.message);
-          setLoading(false);
+    const getReviews = async (asn) => {
+        try {
+            const fetched = await fetchReviews(asn);
+            const reviewsList = fetched || [];
+            setReviews(reviewsList);
+            displayData(reviewsList);
+            setLoading(false);
+            return reviewsList;
+        } catch(e) {
+            setError(e.message);
+            setLoading(false);
+            return [];
         }
     }
 
     useEffect(() => {
-        const fetchReviews = async (locationStr) => {
-            if (token) {
-                try {
-                    const user = jwtDecode(token);
-                    const data = await getReviews(user.id, locationStr);
-                    setReviews(data);
-                } catch (error) {
-                    console.error('Error fetching reviews:', error);
-                }
-            } else {
-                navigate('/login');
-            }
-        };
-
         const fetchAll = async () => {
             if (token) {
                 try {
                     const user = jwtDecode(token);
                     await fetchLocationsDropdown(user.id);
                     await setInitialLocation(user.id);
+                    await getReviews(user.id);
                 } catch (error) {
-                    console.error('Error fetching locations');
+                    console.error('Error on initial load:', error);
                 }
             } else {
                 navigate('/login');
@@ -194,24 +233,17 @@ const Home = (props) => {
         fetchAll();
     }, [token, navigate]);
 
-    // Fetch reviews when selectedLocation changes
+    // Re-fetch reviews when selectedLocation changes (for chart filtering)
     useEffect(() => {
-        if (selectedLocation) {
-            const fetchReviewsForLocation = async () => {
-                if (token) {
-                    try {
-                        const user = jwtDecode(token);
-                        const data = await getReviews(user.id, selectedLocation);
-                        setReviews(data);
-                    } catch (error) {
-                        console.error('Error fetching reviews:', error);
-                    }
-                }
-            };
-            fetchReviewsForLocation();
+        if (selectedLocation && reviews.length > 0) {
+            displayData(reviews);
         }
-    }, [selectedLocation, token]);
-    const displayData = () => {
+    }, [selectedLocation]);
+    const displayData = (ratings) => {
+        ratings = ratings || [];
+
+        const filtered = getFilteredReviews(ratings);
+
         let averages = {
             overallRating: 0,
             priceRating: 0,
@@ -226,58 +258,47 @@ const Home = (props) => {
         let noofUsers = {};
         let data1 = [];
         let data2 = [];
-        let ratings = reviews || [];
     
-        if (ratings.length === 0) {
-            //
+        if (filtered.length === 0) {
             data1 = [
                 { name: 'overallRating', ratings: 0 },
                 { name: 'priceRating', ratings: 0 },
                 { name: 'speedRating', ratings: 0 },
                 { name: 'serviceRating', ratings: 0 }
             ];
-    
-            data2 = [{ name: 'No Data', users: 0 }];
+            data2 = [];
             service = { 'WiFi': 0, 'Broadband': 0, 'Data': 0 };
-    
             setbarData(data1);
             setlineData(data2);
             setServices(service);
-            return; //Exit early since there's no data to process
+            return;
         }
     
-        //Calculate averages and user counts if reviews exist
-        ratings.forEach(review => {
-            averages.overallRating += Number(review.overallRating);
-            averages.priceRating += Number(review.priceRating);
-            averages.speedRating += Number(review.speedRating);
-            averages.serviceRating += Number(review.serviceRating || 0);
-            service[review.type] += 1;
-            noofUsers[review.reviewDate] = noofUsers.hasOwnProperty(review.reviewDate)
-                ? noofUsers[review.reviewDate] + 1
-                : 1;
+        filtered.forEach(review => {
+            averages.overallRating += Number(review.overall_rating) || 0;
+            averages.priceRating += Number(review.price_rating) || 0;
+            averages.speedRating += Number(review.speed_rating) || 0;
+            averages.serviceRating += Number(review.service_rating) || 0;
+            const svcKey = review.type === 'Fiber/Broadband' ? 'Broadband' : review.type;
+            if (svcKey in service) service[svcKey] += 1;
+            const reviewDate = review.date ? new Date(review.date).toLocaleDateString() : 'Unknown';
+            noofUsers[reviewDate] = (noofUsers[reviewDate] || 0) + 1;
         });
     
-        //Prepare data for Bar Chart
         for (let key in averages) {
-            averages[key] /= ratings.length;
+            averages[key] /= filtered.length;
             data1.push({
                 name: key,
-                ratings: isNaN(averages[key]) ? 0 : averages[key] // ✅ Handle NaN
+                ratings: isNaN(averages[key]) ? 0 : parseFloat(averages[key].toFixed(2))
             });
         }
     
-        // ✅ Prepare data for Line Chart
         for (let key in noofUsers) {
-            data2.push({
-                name: key,
-                users: noofUsers[key]
-            });
+            data2.push({ name: key, users: noofUsers[key] });
         }
     
-        // ✅ Calculate service usage percentages
         for (let key in service) {
-            service[key] = ratings.length ? (service[key] * 100) / ratings.length : 0;
+            service[key] = filtered.length ? parseFloat(((service[key] * 100) / filtered.length).toFixed(1)) : 0;
         }
     
         setbarData(data1);
@@ -384,8 +405,13 @@ const Home = (props) => {
                 <Paper elevation={2} style={{padding: 30,margin : 10}} justify="center">
                 <Typography variant="h4">
                     {reviews && reviews.length > 0
-                        ? `${((reviews.filter(review => review.locality === selectedLocation).length / reviews.length) * 100).toFixed(1)}% Users in ${selectedLocation}`
-                        : `No users in ${selectedLocation}`}
+                        ? (() => {
+                            const locationReviews = getFilteredReviews(reviews);
+                            return locationReviews.length > 0
+                                ? `Reviews from ${selectedLocation || 'all locations'}`
+                                : `No reviews for ${selectedLocation || 'all locations'}`;
+                        })()
+                        : `No reviews yet for ${selectedLocation || 'this company'}`}
                 </Typography>
                     <br></br>
                     <Divider/>
@@ -404,7 +430,7 @@ const Home = (props) => {
                 </Paper>
                 <br></br>
                 <Paper elevation={2} style={{padding: 10,margin : 10}} justify="center">  
-                        {lineData && lineData.length > 1 ? (
+                        {lineData && lineData.length > 0 ? (
                             <LineChart 
                                 width={600} 
                                 height={250} 

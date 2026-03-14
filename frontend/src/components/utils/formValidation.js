@@ -1,4 +1,5 @@
 const isText = RegExp(/^[A-Z ]+$/i)
+const isAlphanumeric = RegExp(/^[A-Z0-9 ]+$/i)
 const isEmail = RegExp(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i)
 const isPhone = RegExp(/^\D?(\d{3})\D?\D?(\d{3})\D?(\d{4,6})$/) // us
 const isZip = RegExp(/^[0-9]{5}([- /]?[0-9]{4})?$/) // us
@@ -20,6 +21,9 @@ export default function formValidation(name, value, schema) {
   switch (validate) {
     case "text":
       if (!isText.test(value)) error = "This field accepts text only."
+      break
+    case "alphanumeric":
+      if (!isAlphanumeric.test(value)) error = "This field accepts letters and numbers only."
       break
     case "number":
       if (!isNumber.test(value)) error = "This field accepts numbers only."

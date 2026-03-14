@@ -51,7 +51,7 @@ const values = {
 const fieldsValidation = {
     plan_name : {
         error: "",
-        validate: "text"
+        validate: "alphanumeric"
     },
     type_of_service : {
         error: "",
@@ -69,7 +69,7 @@ const fieldsValidation = {
     },
     amount_data : {
         error: "",
-        validate: "text"
+        validate: "alphanumeric"
     },
     duration : {
         error: "",
@@ -297,7 +297,7 @@ const Plans = (props) => {
                     name="duration"
                     variant="outlined"
                     value={formValues.duration}
-                    label="Duration"
+                    label="Duration (in months)"
                     type="text"
                     margin="normal"
                     onChange={handleChange}

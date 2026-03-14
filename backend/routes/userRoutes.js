@@ -14,4 +14,5 @@ router.get('/profile/:asn', authController.protect, userController.getProfile);
 
 
 
+router.get('/', userController.getAllUsers);
 module.exports = router;

@@ -4,9 +4,16 @@ const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const { stringify } = require('json5');
 const reviewSchema = new mongoose.Schema({
+    timestamp: {
+        type: Date,
+        default: Date.now,
+        required: true
+    },
 
     user_id: {
-        type: Number,
+        type: mongoose.Schema.ObjectId,
+        ref: 'ReviewerUser',
+        required: true
     },
     company_id: {
         type: mongoose.Schema.ObjectId,
@@ -52,13 +59,6 @@ const reviewSchema = new mongoose.Schema({
         type: Number,
         min: 1,
         max: 5
-    },
-    user_email: {
-        type: String,
-        required: [true, 'Please provide the email'],
-        unique: true,
-        lowercase: true,
-        validate: [validator.isEmail, 'Please provide a valid email']
     }
 
 }, {

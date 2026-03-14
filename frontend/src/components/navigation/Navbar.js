@@ -17,6 +17,8 @@ import Footer from '../footer/Footer'
 import {AccountCircle} from "@mui/icons-material";
 import Login from "../authentication/Login";
 import SignUp from "../authentication/SignUp";
+import CustomerSignUp from "../authentication/CustomerSignUp";
+import CustomerHome from "../CustomerHome";
 import CompanyProfile from "../authentication/CompanyProfile";
 import FeedbackIcon from '@mui/icons-material/Feedback';
 import InfoIcon from '@mui/icons-material/Info';
@@ -51,6 +53,7 @@ const useStyles = makeStyles((theme)=>({
         zIndex: theme.zIndex.drawer + 1,
         backgroundColor: theme.palette.primary,
         color: theme.palette.text.primary,
+        borderBottom: `1px solid ${theme.palette.divider}`,
     },
     drawer: {
         width: drawerWidth,
@@ -63,10 +66,8 @@ const useStyles = makeStyles((theme)=>({
         overflow: 'auto',
     },
     sectionDesktop: {
-        display: 'none',
-        [theme.breakpoints.up('md')]: {
-          display: 'flex',
-        }
+                display: 'flex',
+                alignItems: 'center',
     },
     content: {
         flexGrow: 1,
@@ -87,6 +88,25 @@ const useStyles = makeStyles((theme)=>({
     themer: {
         color: theme.palette.text.primary,
         marginRight : 5
+    },
+    toolbarActions: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: theme.spacing(1),
+        marginRight: theme.spacing(1),
+        [theme.breakpoints.down('sm')]: {
+            gap: theme.spacing(0.5),
+            marginRight: 0,
+        },
+    },
+    logoutButton: {
+        whiteSpace: 'nowrap',
+        minWidth: 96,
+        [theme.breakpoints.down('sm')]: {
+            minWidth: 72,
+            padding: '4px 8px',
+            fontSize: '0.75rem',
+        },
     }
 }))
 
@@ -96,8 +116,10 @@ const Navbar = ()=>{
     const [open, setOpen] = React.useState(false);
     const [loggedIn, setLoggedIn] = React.useState(true);
     const [signUp, setSignUp] = React.useState(false);
+    const [customerSignUp, setCustomerSignUp] = React.useState(false);
     const [logout, setLogout] = React.useState(false);
     const [title,setTitle] = React.useState("");
+    const [userType, setUserType] = React.useState(null);
     const {dark, toggleTheme} = React.useContext(ThemeContext);
     const [openProfile, setOpenProfile] = React.useState(false);
     const handleProfileClickOpen = () => setOpenProfile(true);
@@ -113,11 +135,18 @@ const Navbar = ()=>{
             navigate('/login');
             setLoggedIn(false)
             setTitle("RaterNet")
+            setUserType(null);
         } else{
             let user = jwtDecode(token);
-            navigate('/');
             setLoggedIn(true)
-            setTitle(user.asn)
+            setUserType(user.type);
+            if (user.type === 'customer') {
+                navigate('/customer-home');
+                setTitle(user.name || user.email || "Customer");
+            } else {
+                navigate('/');
+                setTitle(user.asn || user.name || "Company");
+            }
         }
     }, [token])
 
@@ -136,19 +165,22 @@ const Navbar = ()=>{
                         className={classes.menuButton}>
                         <MenuIcon />
                     </IconButton> 
-                    <Typography variant="h6" noWrap href='/'>{title}</Typography>
+                    {/* Hide title on login page */}
+                    {window.location.pathname !== '/login' && (
+                        <Typography variant="h6" noWrap href='/'>{title}</Typography>
+                    )}
                     <div className={classes.space}/>
                     <div className={classes.grow}/>
-                    <IconButton edge='end' className={classes.themer} onClick={toggleTheme}>
-                        {dark ? <Brightness7/>: <Brightness4/>}
-                    </IconButton>
-                    {loggedIn ? 
-                    <div className={classes.sectionDesktop}>
-                        <Button variant="outlined" color="inherit" className="logout-btn" onClick={() => setLogout(true)}>Logout</Button>
-                    </div> : 
-                     <div className={classes.sectionDesktop}>
-                        <Button variant="outlined" color="inherit" onClick={() => setSignUp(signUp=>!signUp)}>SignUp</Button>
-                    </div>}
+                    <div className={classes.toolbarActions}>
+                        <IconButton edge='end' className={classes.themer} onClick={toggleTheme}>
+                            {dark ? <Brightness7/>: <Brightness4/>}
+                        </IconButton>
+                        {loggedIn ? 
+                        <div className={classes.sectionDesktop}>
+                            <Button variant="outlined" color="inherit" className={classes.logoutButton} onClick={() => setLogout(true)}>Logout</Button>
+                        </div> : 
+                        null}
+                    </div>
                 </Toolbar>
              </AppBar>
              <Drawer
@@ -162,27 +194,32 @@ const Navbar = ()=>{
                 <Toolbar variant='dense' />
                 <div className={classes.drawerContainer}>
                     <List>
-                        {loggedIn ?  <ListItem button key={'Home'} onClick={() => {
-                            navigate('/');
-                            setOpen(false);
-                        }}>
-                            <ListItemIcon> <AccountCircle/></ListItemIcon>
-                            <ListItemText primary={'Home'} />
-                        </ListItem>: null}
-                        {loggedIn ?  <ListItem button key={'Profile'} onClick={() => {
-                            navigate('/profile');
-                            setOpen(false);
-                        }}>
-                            <ListItemIcon> <AccountCircle/></ListItemIcon>
-                            <ListItemText primary={'Profile'} />
-                        </ListItem>: null}
-                        {loggedIn ?  <ListItem button key={'Plans'} onClick={() => {
-                            navigate('/plans');
-                            setOpen(false);
-                        }}>
-                            <ListItemIcon><FeedbackIcon/></ListItemIcon>
-                            <ListItemText primary={'Plans'}/>
-                        </ListItem>: null}
+                        {/* Only show Home, Profile, Plans for company users */}
+                        {loggedIn && userType !== 'customer' ? (
+                            <>
+                                <ListItem button key={'Home'} onClick={() => {
+                                    navigate('/');
+                                    setOpen(false);
+                                }}>
+                                    <ListItemIcon> <AccountCircle/></ListItemIcon>
+                                    <ListItemText primary={'Home'} />
+                                </ListItem>
+                                <ListItem button key={'Profile'} onClick={() => {
+                                    navigate('/profile');
+                                    setOpen(false);
+                                }}>
+                                    <ListItemIcon> <AccountCircle/></ListItemIcon>
+                                    <ListItemText primary={'Profile'} />
+                                </ListItem>
+                                <ListItem button key={'Plans'} onClick={() => {
+                                    navigate('/plans');
+                                    setOpen(false);
+                                }}>
+                                    <ListItemIcon><FeedbackIcon/></ListItemIcon>
+                                    <ListItemText primary={'Plans'}/>
+                                </ListItem>
+                            </>
+                        ) : null}
                         <ListItem button key={'About'} onClick={() => {
                             navigate('/about');
                             setOpen(false);
@@ -194,8 +231,9 @@ const Navbar = ()=>{
                     <Divider/>
                 </div>
             </Drawer>
-            <Logout open={logout} setOpen={setLogout} setLoggedIn={setLoggedIn} setDrawerOpen={setOpen} setTitle={setTitle}/>
+            <Logout open={logout} setOpen={setLogout} setLoggedIn={setLoggedIn} setDrawerOpen={setOpen} setTitle={setTitle} setToken={setToken}/>
             <SignUp open={signUp} setOpen={setSignUp} setTitle={setTitle}/>
+            <CustomerSignUp open={customerSignUp} setOpen={setCustomerSignUp}/>
             <main style={{
                 width : '100%',
                 justifyContent : 'center',
@@ -207,10 +245,16 @@ const Navbar = ()=>{
                     <Route exact path='/' element={<Home />}/>
                     <Route exact path='/about' element={<About />}/>
                     <Route exact path='/login' element={
-                        <Login setloggedIn={setLogin} setToken={setToken} />
+                        <Login
+                            setloggedIn={setLogin}
+                            setToken={setToken}
+                            onOpenCompanySignUp={() => setSignUp(true)}
+                            onOpenCustomerSignUp={() => setCustomerSignUp(true)}
+                        />
                     }/>
                     <Route exact path='/profile' element={<Profile />}/>
                     <Route exact path='/plans' element={<Plans />}/>
+                    <Route exact path='/customer-home' element={<CustomerHome />} />
                 </Routes>
             </main>
             

@@ -157,6 +157,9 @@ const SignUp = ({ open, setOpen }) => {
 
             // Store token if needed
             localStorage.setItem('token', responseData.token);
+            setValues(initialValues);
+            setStage(0);
+            setOpen(false);
             navigate('/');
 
         } catch (error) {

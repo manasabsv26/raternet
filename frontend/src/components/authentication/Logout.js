@@ -9,24 +9,28 @@ import useTheme from "@mui/styles/useTheme";
 import { useSnackbar } from "notistack";
 import { useNavigate } from "react-router-dom";
 
-const Logout = ({ open, setOpen, setLoggedIn,setDrawerOpen ,setTitle}) => {
+const Logout = ({ open, setOpen, setLoggedIn, setDrawerOpen, setTitle, setToken }) => {
     const theme = useTheme();
-    const {enqueueSnackbar, closeSnackbar} = useSnackbar();
+    const { enqueueSnackbar } = useSnackbar();
     const navigate = useNavigate();
 
     const handleClose = () => setOpen(false);
 
     const handleSubmit = () => {
-        enqueueSnackbar('Logging out....', {variant: 'info', key: 'logging_out'});
-        localStorage.clear();
-        //setTitle("RaterNet")
-        setTimeout(() => closeSnackbar('logging_out'), 3000);
-        setTimeout(() => enqueueSnackbar('Logged out Successfully!', {variant: 'success', key: 'logged_out'}), 3000);
-        setTimeout(() => closeSnackbar('logged_out'), 6000);
-        setTimeout(() => setLoggedIn(false), 3000);
-        //setTimeout(() => navigate('/login'),3000);
+        // Close overlays first for a clean transition.
         setDrawerOpen(false);
         setOpen(false);
+
+        enqueueSnackbar('Logging out...', { variant: 'info', autoHideDuration: 1200 });
+
+        // Clear auth and route in one step to avoid timing races.
+        localStorage.removeItem('token');
+        setLoggedIn(false);
+        if (setTitle) setTitle('RaterNet');
+        if (setToken) setToken(null);
+
+        navigate('/login', { replace: true });
+        enqueueSnackbar('Logged out successfully!', { variant: 'success', autoHideDuration: 2000 });
     }
 
     return (

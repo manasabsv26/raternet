@@ -1,6 +1,35 @@
+
 const Review = require('./../models/reviewmodel');
 const AppError = require('./../utils/appError');
 const catchAsync = require('./../utils/catchAsync');
+
+// Update review by ID
+exports.updateReview = catchAsync(async (req, res, next) => {
+    const review = await Review.findByIdAndUpdate(req.params.id, req.body, {
+        new: true,
+        runValidators: true
+    });
+    if (!review) {
+        return next(new AppError('No review found with that ID', 404));
+    }
+    res.status(200).json({
+        status: 'success',
+        data: {
+            review
+        }
+    });
+});
+// Delete review by ID
+exports.deleteReview = catchAsync(async (req, res, next) => {
+    const review = await Review.findByIdAndDelete(req.params.id);
+    if (!review) {
+        return next(new AppError('No review found with that ID', 404));
+    }
+    res.status(204).json({
+        status: 'success',
+        data: null
+    });
+});
 
 exports.getallReviews = catchAsync(async(req, res, next) => {
 
@@ -15,6 +44,10 @@ exports.getallReviews = catchAsync(async(req, res, next) => {
 
 });
 exports.createReview = catchAsync(async(req, res, next) => {
+    const { user_id, company_id, feedback, city, locality, type } = req.body;
+    if (!user_id || !company_id || !feedback || !city || !locality || !type) {
+        return next(new AppError('Missing required fields: user_id, company_id, feedback, city, locality, type', 400));
+    }
 
     const newReview = await Review.create(req.body);
     res.status(201).json({
@@ -25,6 +58,14 @@ exports.createReview = catchAsync(async(req, res, next) => {
         }
     })
 
+});
+
+exports.getReviewsByUid = catchAsync(async(req, res, next) => {
+    const review = await Review.find({ user_id: req.params.id });
+    res.status(200).json({
+        status: 'success',
+        data: { review }
+    });
 });
 
 exports.getReviewsByCid = catchAsync(async(req, res, next) => {

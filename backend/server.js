@@ -11,8 +11,22 @@ process.on('uncaughtException', (err,origin) => {
 
 dotenv.config({ path: './config.env' });
 const app = require('./app');
+const Review = require('./models/reviewmodel');
 console.log(process.env.NODE_ENV);
 const DB = process.env.DATABASE;
+
+const dropLegacyReviewIndexes = async () => {
+    try {
+        const indexes = await Review.collection.indexes();
+        const hasLegacyUserEmailIndex = indexes.some(idx => idx && idx.name === 'user_email_1');
+        if (hasLegacyUserEmailIndex) {
+            await Review.collection.dropIndex('user_email_1');
+            console.log('Dropped legacy reviews index: user_email_1');
+        }
+    } catch (err) {
+        console.log('Index cleanup skipped:', err.message);
+    }
+};
 
 mongoose
     .connect(DB, {
@@ -20,7 +34,10 @@ mongoose
         useCreateIndex: true,
         useFindAndModify: false
     })
-    .then(() => console.log('DB connection successful!'));
+    .then(async() => {
+        console.log('DB connection successful!');
+        await dropLegacyReviewIndexes();
+    });
 
 const port = process.env.PORT || 7000;
 const server = app.listen(port, () => {

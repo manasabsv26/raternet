@@ -73,7 +73,7 @@ const ViewPlans = (props) => {
                 <div style={{display:'flex',justifyContent : 'space-between',padding:10}}>
                     <Chip size='large' label={plan.price.toString()+' INR'} color='primary'/>
                     <Chip size='large' label={plan.amount_data} color='primary'/>
-                    <Chip size='large' label={plan.duration} color='primary'/>
+                  <Chip size='large' label={`${plan.duration} months`} color='primary'/>
                 </div>
                 <Divider fullWidth/>
                 <br></br>

@@ -81,6 +81,8 @@ app.use('/users', userRouter);
 app.use('/review', reviewRouter);
 app.use('/plan', planRouter);
 app.use('/locations', locationRouter);
+const reviewerUserRouter = require('./routes/reviewerUserRoutes');
+app.use('/reviewer', reviewerUserRouter);
 
 app.all('*', (req, res, next) => {
     next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
