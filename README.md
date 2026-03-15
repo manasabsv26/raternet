@@ -1,8 +1,13 @@
 # RaterNet
 
-RaterNet is an ISP rating platform with:
-- A Node.js + Express + MongoDB backend
-- A React frontend (company and customer flows)
+Raternet is a platform that helps customers discover the best Internet Service Providers (ISPs) in their area. Users can explore ISPs by location, compare plans and services, read reviews from other customers, and add their own reviews based on their experiences.
+
+For ISPs, Raternet offers a dashboard to track reviews across locations, plans, and services, providing visual insights that help providers understand customer feedback and improve their offerings.
+
+## Tech Stack
+
+- Backend: Node.js, Express, MongoDB
+- Frontend: React 
 
 ## Execution Output
 
