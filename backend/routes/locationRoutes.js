@@ -9,6 +9,9 @@ router.route('/')
     .get(LocationController.getallLocations)
     .post(LocationController.createLocation);
 
+router.route('/search')
+    .get(LocationController.searchCompanyLocations);
+
 router.route('/options/:id')
     .delete(LocationController.deleteLocation)    // delete plan by PLAN-id
     .get(LocationController.getLocationsById)      //get Plan by COMPANY -ID

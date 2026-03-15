@@ -19,6 +19,7 @@ import Login from "../authentication/Login";
 import SignUp from "../authentication/SignUp";
 import CustomerSignUp from "../authentication/CustomerSignUp";
 import CustomerHome from "../CustomerHome";
+import CustomerDashboard from "../CustomerDashboard";
 import CompanyProfile from "../authentication/CompanyProfile";
 import FeedbackIcon from '@mui/icons-material/Feedback';
 import InfoIcon from '@mui/icons-material/Info';
@@ -141,7 +142,7 @@ const Navbar = ()=>{
             setLoggedIn(true)
             setUserType(user.type);
             if (user.type === 'customer') {
-                navigate('/customer-home');
+                navigate('/customer-dashboard');
                 setTitle(user.name || user.email || "Customer");
             } else {
                 navigate('/');
@@ -220,6 +221,24 @@ const Navbar = ()=>{
                                 </ListItem>
                             </>
                         ) : null}
+                        {loggedIn && userType === 'customer' ? (
+                            <>
+                                <ListItem button key={'Discover'} onClick={() => {
+                                    navigate('/customer-dashboard');
+                                    setOpen(false);
+                                }}>
+                                    <ListItemIcon><AccountCircle/></ListItemIcon>
+                                    <ListItemText primary={'Discover'} />
+                                </ListItem>
+                                <ListItem button key={'AddReview'} onClick={() => {
+                                    navigate('/customer-home');
+                                    setOpen(false);
+                                }}>
+                                    <ListItemIcon><FeedbackIcon/></ListItemIcon>
+                                    <ListItemText primary={'Add Review'} />
+                                </ListItem>
+                            </>
+                        ) : null}
                         <ListItem button key={'About'} onClick={() => {
                             navigate('/about');
                             setOpen(false);
@@ -238,7 +257,8 @@ const Navbar = ()=>{
                 width : '100%',
                 justifyContent : 'center',
                 padding : 30,
-                alignItems : 'center'
+                alignItems : 'center',
+                minHeight: '100vh'
             }}>
                 <Toolbar variant='dense'/>
                 <Routes>
@@ -254,6 +274,7 @@ const Navbar = ()=>{
                     }/>
                     <Route exact path='/profile' element={<Profile />}/>
                     <Route exact path='/plans' element={<Plans />}/>
+                    <Route exact path='/customer-dashboard' element={<CustomerDashboard />} />
                     <Route exact path='/customer-home' element={<CustomerHome />} />
                 </Routes>
             </main>

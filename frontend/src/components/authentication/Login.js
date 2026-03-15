@@ -147,7 +147,7 @@ const Login = ({ setloggedIn, setToken, onOpenCompanySignUp, onOpenCustomerSignU
                 localStorage.setItem('token', responseData.token);
                 setloggedIn();
                 setToken(responseData.token);
-                navigate('/');
+                navigate('/customer-dashboard');
             } catch (e) {
                 closeSnackbar('logging_in_customer');
                 enqueueSnackbar(e.message, { variant: 'error', key: 'error_customer' });
