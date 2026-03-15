@@ -56,7 +56,7 @@ Optional for mobile app:
 
 ```powershell
 git clone <your-repo-url>
-cd RaterNet
+cd raternet
 ```
 
 ### 3. Backend Setup
@@ -125,7 +125,7 @@ Frontend should run at: `http://localhost:3000`
 Option A (from project root):
 
 ```powershell
-cd RaterNet
+cd raternet
 npm run dev
 ```
 
@@ -155,7 +155,7 @@ Option B (separate terminals):
 
 ```powershell
 # Single command from project root
-cd RaterNet
+cd raternet
 npm run dev
 ```
 
